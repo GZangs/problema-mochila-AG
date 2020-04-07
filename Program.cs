@@ -35,13 +35,27 @@ namespace problema_mochila_AG
             var individuo4 = new Individuo(new Item[] { null, corda, canivete, null, null, comida });
             populacao = new Individuo[] { individuo1, individuo2, individuo3, individuo4 };
             populacaoDescendentes = new Individuo[] { };
-
-            while (true)
+            
+            //TODO best FITNESS: 39 - Weight: 30 ?
+            var genationLimit = 200;
+            var currentGenation = 0;
+            while (currentGenation <= genationLimit)
             {
                 selecao();
-                populacaoDescendentes.Append(crossover());
-                mutation();
+                var descendentes = crossover();
+                mutation(descendentes);
+                populacao = populacao.Concat(descendentes).ToArray();
+                Console.WriteLine("população: " + populacao.Length);
+                currentGenation++;
             }
+
+            var resultFittest = populacao
+                .OrderByDescending(i => i.getFitness())
+                .Where(i => i.getTotalWeight() <= pesoMochila)
+                .FirstOrDefault();
+            
+            Console.WriteLine("FITNESS: " + resultFittest.getFitness() + " - Weight: " +resultFittest.getTotalWeight());
+            
         }
 
         public static void selecao()
@@ -57,32 +71,40 @@ namespace problema_mochila_AG
                 .ToArray()[1];
         }
 
-        public static Individuo crossover()
+        public static Individuo[] crossover()
         {
             Random rn = new Random();
 
             int crossoverIdx = rn.Next(populacao[0].items.Length);
-            var items = fittest.items.Take(crossoverIdx).Concat(secondFittest.items.Skip(crossoverIdx)).ToArray();
-            return new Individuo(items);
+            var childrens = new Individuo[2];
+            childrens[0] = new Individuo(fittest.items.Take(crossoverIdx).Concat(secondFittest.items.Skip(crossoverIdx)).ToArray());
+            childrens[1] = new Individuo(secondFittest.items.Take(crossoverIdx).Concat(fittest.items.Skip(crossoverIdx)).ToArray());
+            
+            return childrens;
         }
 
-        public static void mutation()
+        public static void mutation(Individuo[] childrens)
         {
             Random rn = new Random();
 
             //Select a random mutation point
             int mutationIdx = rn.Next(populacao[0].items.Length);
             var mutationRate = 0.05;
+            var porcentagem = rn.NextDouble();
+            Console.WriteLine("porcentagem: " + porcentagem + "  true? : " + (porcentagem <= mutationRate));
 
-            if (rn.Next(0, 1) <= mutationRate)
+            if (porcentagem <= mutationRate)
             {
-                if (fittest.items[mutationIdx] != null)
+                foreach (var child in childrens)
                 {
-                    fittest.items[mutationIdx] = null;
-                }
-                else
-                {
-                    fittest.items[mutationIdx] = itemsIdx[mutationIdx];
+                    if (child.items[mutationIdx] != null)
+                    {
+                        child.items[mutationIdx] = null;
+                    }
+                    else
+                    {
+                        child.items[mutationIdx] = itemsIdx[mutationIdx];
+                    }
                 }
             }
         }
